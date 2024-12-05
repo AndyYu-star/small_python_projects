@@ -8,9 +8,9 @@ def add_parity_bits(string):
         num_parities += 1
     for parity in range(num_parities):
         string = string[0:(2**parity)-1] + "p" + string[(2**parity)-1:]
-    string = "0" + string
+    string = "p" + string
 
-    #assigning parity checks
+    #assigning SEC parity checks
     for parity in range(num_parities):
         even_1s = True
         for i in range(len(string)):
@@ -20,6 +20,16 @@ def add_parity_bits(string):
             string = string[:2**parity] + "0" + string[(2**parity)+1:]
         else:
             string = string[:2**parity] + "1" + string[(2**parity)+1:]
+            
+    #assigning DED parity check
+    even_1s = True
+    for i in range(1, len(string)):
+        if string[i] == "1":
+            even_1s = not even_1s
+    if even_1s:
+        string = "0" + string[1:]
+    else:
+        string = "1" + string[1:]
                 
     return string
 
@@ -34,8 +44,21 @@ def reconstruct(code):
                 even_1s = not even_1s
         if not even_1s:
             wrong_index += 2**parity
+            
+    #detect wrong bits
+    even_1s = True
+    for i in range(len(code)):
+        if code[i] == "1":
+            even_1s = not even_1s
+    if even_1s:
+        if wrong_index == 0:
+            print("No bit flip detected.")
+        else:
+            print("Two bit flips detected.")
+    else:
+        print("One bit flip detected.")
 
-    #correct wrong bit
+    #correct 1 wrong bit
     if wrong_index < len(code):
         if code[wrong_index] == "0":
             code = code[:wrong_index] + "1" + code[wrong_index+1:]
@@ -43,7 +66,7 @@ def reconstruct(code):
             code = code[:wrong_index] + "0" + code[wrong_index+1:]
     else:
         print("Unable to correct!")
-        
+    
     #remove parity bits
     for parity in range(num_parities-1, -1, -1):
         code = code[:2**parity] + code[(2**parity)+1:]
@@ -56,20 +79,13 @@ string = input("Enter a string of bits: ")
 code = add_parity_bits(string)
 print("Encoding:", code)
 
-changed_index = random.randint(0,len(code)-1)
-if code[changed_index] == "0":
-    code = code[:changed_index] + "1" + code[changed_index+1:]
-else:
-    code = code[:changed_index] + "0" + code[changed_index+1:]
-print("Encoding after bit flip:", code)
-
-""" #uncomment to test if two bits flip
-changed_index = random.randint(0,len(code)-1)
-if code[changed_index] == "0":
-    code = code[:changed_index] + "1" + code[changed_index+1:]
-else:
-    code = code[:changed_index] + "0" + code[changed_index+1:]
-print("Encoding after bit flip:", code)
-"""
+FLIP_NUM = random.randint(0,3) #whether it has 0, 1, 2 or 3 bit flips
+for i in range(FLIP_NUM):
+    changed_index = random.randint(0,len(code)-1)
+    if code[changed_index] == "0":
+        code = code[:changed_index] + "1" + code[changed_index+1:]
+    else:
+        code = code[:changed_index] + "0" + code[changed_index+1:]
+    print("Encoding after bit flip:", code)
 
 print("Corrected string:", reconstruct(code))
