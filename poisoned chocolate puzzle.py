@@ -24,7 +24,7 @@ If ... (to be written)
 win = []
 loss = [] #this array first contains every possible non-obvious state
 
-MAX_DIST = 20
+MAX_DIST = 30
 for a in range(0, MAX_DIST):
     for b in range(a+1, MAX_DIST):
         for c in range(b+1, MAX_DIST):
@@ -37,13 +37,12 @@ while i < len(loss):
     j = 0
     won = False
     while j < i and not won:
-        #below if statement checks if exactly 3 of the dists match,
+        #below if statement checks if only 1 of the dists is different,
         #with the other dist in the substate being lower
-        #than the corresponding dist in the original case
-        if (int(loss[i][0] == loss[j][0]) + int(loss[i][1] == loss[j][1]) +
-            int(loss[i][2] == loss[j][2]) + int(loss[i][3] == loss[j][3]) == 3 and
-            loss[j][0]+loss[j][1]+loss[j][2]+loss[j][3] <
-            loss[i][0]+loss[i][1]+loss[i][2]+loss[i][3]):
+        #than the dist in the original case
+        if (len(set(loss[i]) - set(loss[j])) == 1 and
+            list(set(loss[i]) - set(loss[j]))[0] >
+            list(set(loss[j]) - set(loss[i]))[0]):
             
             win.append(loss[i]) #MAYBE REMOVE? since maybe no point to storing in win?
             won = True
