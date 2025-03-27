@@ -109,6 +109,7 @@ will turn the bit into a 0, so the result would have to be less than that dist.
 
 """
 
+
 #a 'move' is written as a char corresponding to the direction of the move, followed
 #by the number of squares cut off in that direction
 #(e.g. 'd8' means 8 rows are chopped off from the bottom (down) of the chocolate bar)
@@ -120,8 +121,8 @@ def draw_bar(w, h, coords):
             choco_row = [" "]*w
             choco_array.append(choco_row)
         for coord in coords:
-            #TODO make more robust
-            choco_array[h-1-coord[1]][coord[0]] = "x"
+            if h-1-coord[1] >= 0 and 1+coord[1] > 0 and coord[0] >= 0 and coord[0] < w:
+                choco_array[h-1-coord[1]][coord[0]] = "x"
         print()
         for choco_row in choco_array:
             print((2*w+1)*"-")
@@ -134,12 +135,12 @@ def draw_bar(w, h, coords):
         print()
         for i in range(h):
             print((2*w+1)*"-")
-            if h-i == y:
-                print("| "*(x-1)+"|X"+"| "*(w-x)+"|")
+            if h-i == coords[1]:
+                print("| "*(coords[0]-1)+"|X"+"| "*(w-coords[0])+"|")
             else:
                 print("| "*w+"|")
         print((2*w+1)*"-")
-        print("The bar is "+str(dims[0])+"x"+str(dims[1])+" and the piece is at position ("+str(ppiece[0]-1)+","+str(ppiece[1]-1)+"). (0-indexed)")
+        print("The bar is "+str(dims[0])+"x"+str(dims[1])+" and the piece is at position ("+str(coords[0]-1)+","+str(coords[1]-1)+"). (0-indexed)")
 
 def validate_move(move):
     if len(move) >= 2:
@@ -155,10 +156,18 @@ def make_move(dims, ppiece, move):
         dims[1] -= int(move[1:])
     elif move[0] == 'l':
         dims[0] -= int(move[1:])
-        ppiece[0] -= int(move[1:])
+        if type(ppiece[0]) is list:
+            for coords in ppiece:
+                coords[0] -= int(move[1:])
+        else:
+            ppiece[0] -= int(move[1:])
     elif move[0] == 'd' or move[0] == 'b':
         dims[1] -= int(move[1:])
-        ppiece[1] -= int(move[1:])
+        if type(ppiece[0]) is list:
+            for coords in ppiece:
+                coords[1] -= int(move[1:])
+        else:
+            ppiece[1] -= int(move[1:])
     else:
         assert False #this should never be reached
 
@@ -169,7 +178,7 @@ def make_turn(dims, coords):
         highest = 0
         lowest = dims[0]-1
 
-        for ppiece in coords:
+        for ppiece in coords: #finds the bounding box of all the poisoned squares
             if ppiece[0] < leftest:
                 leftest = ppiece[0]
             if ppiece[0] > rightest:
@@ -179,8 +188,10 @@ def make_turn(dims, coords):
             if ppiece[1] < lowest:
                 lowest = ppiece[1]
         move = decide_move(dims[0]-1-rightest, dims[1]-1-highest, leftest, lowest)
-        make_move(dims, ppiece, move)
-        #UNFINISHED
+    else:
+        move = decide_move(dims[0]-ppiece[0], dims[1]-ppiece[1], ppiece[0]-1, ppiece[1]-1)
+        
+    make_move(dims, coords, move)
 
 def decide_move(rdist, udist, ldist, ddist):
     dists = [rdist, udist, ldist, ddist]
@@ -205,13 +216,33 @@ def decide_move(rdist, udist, ldist, ddist):
                 return dirs[i] + str(dists[i] - (value ^ dists[i]))
             i += 1
         assert False #this should never be reached
+        
+def is_win(dims, coords):
+    if type(coords[0]) is list:
+        leftest = dims[0]-1
+        rightest = 0
+        highest = 0
+        lowest = dims[0]-1
 
-MAX_DIST = 30
+        for ppiece in coords: #checks if the bounding box of the poisoned squares takes up the whole bar
+            if ppiece[0] < leftest:
+                leftest = ppiece[0]
+            if ppiece[0] > rightest:
+                rightest = ppiece[0]
+            if ppiece[1] > highest:
+                highest = ppiece[1]
+            if ppiece[1] < lowest:
+                lowest = ppiece[1]
+        return (leftest == 0 and rightest == dims[0]-1 and highest == dims[1]-1 and lowest == 0)
+    else:
+        return (dims[0] == 1 and dims[1] == 1)
+
+MAX_DIST = 10
 
 num_poison = input("Enter the number of poisoned squares you want the chocolate bar to have. (a standard game has just 1.)")
 if num_poison.isnumeric(): #TODO test properly
     num_poison = int(num_poison)
-    if num_poison = 0:
+    if num_poison == 0:
         print("Nice try. I'll make 1 square poisoned.")
 else:
     print("That is not a positive integer, so I'll just assume you want 1.")
@@ -221,41 +252,41 @@ dims = [random.randint(1,MAX_DIST), random.randint(1,MAX_DIST)]
 
 if num_poison == 1:
     ppiece = [random.randint(1,dims[0]), random.randint(1,dims[1])]
-    draw_bar(dims[0], dims[1], ppiece)
 else:
-    ppieces = []
-    for i in range(num_poison):
-        ppiece = [random.randint(0, dims[0]-1), random.randint(0, dims[1]-1)]
-        ppieces.append(ppiece)
+    ppiece = []
+    if dims[0]*dims[1] <= num_poison:
+        dims[0] = MAX_DIST
+        dims[1] = num_poison // MAX_DIST + 1
+        
+    temp_list = random.sample(range(dims[0]*dims[1]), num_poison)
+    for item in temp_list:
+        coords = [item // dims[1], item % dims[1]]
+        ppiece.append(coords)
     
-    draw_bar(dims[0], dims[1], ppieces)
+draw_bar(dims[0], dims[1], ppiece)
 
 game_over = False
+
 
 turn_order = input("Do you want to be the 1st or 2nd player? (Enter '1' for 1st, anything else for 2nd.)")
 if turn_order != "1":
     turn_order = "2"
 
-    if dims[0] == 1 and dims[1] == 1:
+    if is_win(dims, ppiece):
         game_over = True
         print("You won!... without doing anything. *slow clap*")
 
     if not game_over:
         print("My turn! The chocolate bar now looks like this:")
 
-        if num_poison == 1:
-            move = decide_move(dims[0]-ppiece[0], dims[1]-ppiece[1], ppiece[0]-1, ppiece[1]-1)
-        else:
-            move = decide_move(dims[0]-1-rightest, dims[1]-1-highest, leftest, lowest)
+        make_turn(dims, ppiece)
 
-        make_move(dims, ppiece, move)
-
-        draw_bar(dims[0], dims[1], ppiece[0], ppiece[1])
+        draw_bar(dims[0], dims[1], ppiece)
 
     
 while not game_over:
 
-    if dims[0] == 1 and dims[1] == 1:
+    if is_win(dims, ppiece):
         game_over = True
         print("I won!")
         
@@ -268,23 +299,35 @@ E.g. 'r6' would remove 6 columns from the right, while 'd2'/'b2' would remove 2 
         make_move(dims, ppiece, move)
         print("The chocolate bar now looks like this:")
 
-        draw_bar(dims[0], dims[1], ppiece[0], ppiece[1])
+        draw_bar(dims[0], dims[1], ppiece)
 
-        if dims[0] == 1 and dims[1] == 1:
+        if is_win(dims, ppiece):
             game_over = True
             print("You won!")
-        elif (ppiece[0] <= 0 or ppiece[0] > dims[0] or
-              ppiece[1] <= 0 or ppiece[1] > dims[1]): #change so works when num_poison > 1
-            game_over = True
-            print("""Uhh, you just ate the poisoned piece. I mean I'll take the win, but you could've tried to keep going until the end.
-If you did that you wouldn't even have to eat the poisoned chocolate - I would've just said I won and that's it. Now you're probably gonna die just because you gave up early to a game of chocolate.""")
+        elif type(ppiece[0]) is list:
+            poison_ate = False
+            i = 0
+            while i < len(ppiece) and not poison_ate:
+                if (ppiece[i][0] < 0 or ppiece[i][0] >= dims[0] or
+                    ppiece[i][1] < 0 or ppiece[i][1] >= dims[1]):
+                    poison_ate = True
+                    game_over = True
+                    print("""Uhh, you just ate a poisoned piece. I mean I'll take the win, but you could've tried to keep going until the end.
+If you did that you wouldn't even have to eat the poisoned chocolate - I would've just said I won and that's it. Now you're probably gonna die a painful death just because you gave up early to a game of chocolate.""")
+            
+                i += 1
+        else:
+            if (ppiece[0] < 0 or ppiece[0] >= dims[0] or
+                ppiece[1] < 0 or ppiece[1] >= dims[1]):
+                game_over = True
+                print("""Uhh, you just ate the poisoned piece. I mean I'll take the win, but you could've tried to keep going until the end.
+If you did that you wouldn't even have to eat the poisoned chocolate - I would've just said I won and that's it. Now you're probably gonna die a painful death just because you gave up early to a game of chocolate.""")
 
         if not game_over:
             print("My turn! The chocolate bar now looks like this:")
     
-            move = decide_move(dims[0]-ppiece[0], dims[1]-ppiece[1], ppiece[0]-1, ppiece[1]-1)
-            make_move(dims, ppiece, move)
+            make_turn(dims, ppiece)
 
-            draw_bar(dims[0], dims[1], ppiece[0], ppiece[1])
+            draw_bar(dims[0], dims[1], ppiece)
 
 #TODO - make imperfect player, then allow user to input a bar size & poison position
