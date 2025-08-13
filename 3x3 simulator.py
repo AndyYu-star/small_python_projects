@@ -78,6 +78,68 @@ def b(number):
         corners[1] = [corners[6][0],(corners[6][1]+2)%3]
         corners[6] = [corners[7][0],(corners[7][1]+1)%3]
         corners[7] = [temp2[0],(temp2[1]+2)%3]
+#regular moves are done according to the absolute positions of the pieces
+#rotations, wide and slice moves are done according to the relative position of the cube, using orientation
+def x(number):
+    global orientation
+    for i in range(number):
+        temp = orientation["u"]
+        orientation["u"] = orientation["f"]
+        orientation["f"] = orientation["d"]
+        orientation["d"] = orientation["b"]
+        orientation["b"] = temp
+def y(number):
+    global orientation
+    for i in range(number):
+        temp = orientation["r"]
+        orientation["r"] = orientation["b"]
+        orientation["b"] = orientation["l"]
+        orientation["l"] = orientation["f"]
+        orientation["f"] = temp
+def z(number):
+    global orientation
+    for i in range(number):
+        temp = orientation["r"]
+        orientation["r"] = orientation["u"]
+        orientation["u"] = orientation["l"]
+        orientation["l"] = orientation["d"]
+        orientation["d"] = temp
+def rw(number):
+    global orientation
+    eval(orientation["l"] + "(number)")
+    x(number)
+def uw(number):
+    global orientation
+    eval(orientation["d"] + "(number)")
+    y(number)
+def fw(number):
+    global orientation
+    eval(orientation["b"] + "(number)")
+    z(number)
+def lw(number):
+    global orientation
+    eval(orientation["r"] + "(number)")
+    x(4-(number%4))
+def dw(number):
+    global orientation
+    eval(orientation["u"] + "(number)")
+    y(4-(number%4))
+def bw(number):
+    global orientation
+    eval(orientation["f"] + "(number)")
+    z(4-(number%4))
+def m(number):
+    global orientation
+    rw(4-(number%4))
+    eval(orientation["r"] + "(number)")
+def e(number):
+    global orientation
+    uw(4-(number%4))
+    eval(orientation["u"] + "(number)")
+def s(number):
+    global orientation
+    bw(4-(number%4))
+    eval(orientation["b"] + "(number)")
 
 #functions for getting the bld memo letter sequences for a given scramble
 def edge_memo(buffer, flip):
@@ -221,18 +283,44 @@ while True:
     corners = []
     for corner in range(8):
         corners.append([corner,0])
-        eo = 0
-        co = 0
-    moves = input("Enter a series of valid 3x3 moves.").split()
+    orientation = { #dictionary stores the cube's current orientation
+        "r": "r",
+        "u": "u",
+        "f": "f",
+        "l": "l",
+        "d": "d",
+        "b": "b"
+        }
+    eo = 0
+    co = 0
+    moves = input("Enter a series of valid 3x3 moves. (please use w for wide moves)").split()
     for move in moves:
         #does the actual moves based on input
         move = move.lower()
-        if len(move) != 2:
-            eval(move + "(1)")
-        elif move[1] == "2":
-            eval(move[0] + "(2)")
-        elif move[1] == "'":
-            eval(move[0] + "(3)")
+        if move[0] in ["m", "e", "s", "x", "y", "z"]:
+            #slice moves and rotations
+            if len(move) < 2:
+                eval(move + "(1)")
+            elif move[1] == "2":
+                eval(move[0] + "(2)")
+            elif move[1] == "'":
+                eval(move[0] + "(3)")
+        else:
+            #normal moves (which need to be converted based on orientation)
+            if len(move) < 2:
+                eval(orientation[move] + "(1)")
+            elif move[1] == "w":
+                #wide moves
+                if len(move) == 2:
+                    eval(move + "(1)")
+                elif move[2] == "2":
+                    eval(move[:2] + "(2)")
+                elif move[2] == "'":
+                    eval(move[:2] + "(3)")
+            elif move[1] == "2":
+                eval(orientation[move[0]] + "(2)")
+            elif move[1] == "'":
+                eval(orientation[move[0]] + "(3)")
     #prints the result (not readable)
     print("Edges:", edges)
     print("Corners:", corners)
