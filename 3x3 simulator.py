@@ -80,7 +80,7 @@ def b(number):
         corners[7] = [temp2[0],(temp2[1]+2)%3]
 
 #functions for getting the bld memo letter sequences for a given scramble
-def edge_memo(buffer):
+def edge_memo(buffer, flip):
     result = ""
     cycle_done = False
     solved = []
@@ -88,6 +88,7 @@ def edge_memo(buffer):
     global eo
     global edge_speffz
     piece = edges[buffer]
+    eo = flip
     for edge in edges:
         #checks if there are already any solved edges
         if edge[0] == edges.index(edge) and edge[1] == 0:
@@ -138,7 +139,7 @@ def edge_memo(buffer):
             return result
         cycle_done = False
         
-def corner_memo(buffer):
+def corner_memo(buffer, twist):
     result = ""
     cycle_done = False
     solved = []
@@ -146,6 +147,7 @@ def corner_memo(buffer):
     global co
     global corner_speffz
     piece = corners[buffer]
+    co = twist
     for corner in corners:
         if corner[0] == corners.index(corner) and corner[1] == 0:
             solved.append(corner[0])
@@ -195,6 +197,22 @@ def corner_memo(buffer):
 #window.update()
         
 #asks user for input
+ebuffer_speffz = input("Enter the edge buffer you use (in Speffz lettering scheme).").upper()
+cbuffer_speffz = input("Enter the corner buffer you use (in Speffz lettering scheme).").upper()
+edge_buffer = 2
+edge_flip = 0
+corner_buffer = 2
+corner_twist = 0
+#assigns the buffers
+for i in range(len(edge_speffz)):
+    if ebuffer_speffz in edge_speffz[i]:
+        edge_buffer = i
+        edge_twist = edge_speffz[i].index(ebuffer_speffz)
+for i in range(len(corner_speffz)):
+    if cbuffer_speffz in corner_speffz[i]:
+        corner_buffer = i
+        corner_twist = corner_speffz[i].index(cbuffer_speffz)
+        
 while True:
     #creates the solved cube
     edges = []
@@ -215,8 +233,10 @@ while True:
             eval(move[0] + "(2)")
         elif move[1] == "'":
             eval(move[0] + "(3)")
-    #prints the result
-    print("Edges:",edges)
-    print("Corners:",corners)
-    print(edge_memo(2))
-    print(corner_memo(2))
+    #prints the result (not readable)
+    print("Edges:", edges)
+    print("Corners:", corners)
+
+    #finds and prints 3bld memo (readable)
+    print("Edge memo:", edge_memo(edge_buffer, edge_twist))
+    print("Corner memo:", corner_memo(corner_buffer, corner_twist))
